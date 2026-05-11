@@ -121,21 +121,7 @@ compare_glists (GList *t1, GList *t2, GCompareFunc cmpfunc)
 static void
 preview_clicked(GtkWidget *button, gpointer data)
 {
-	G_CONST_RETURN gchar *entry; 
-	gchar *dir; 
-	gchar *rc;
-	gchar *actual;
-
-	entry = gtk_entry_get_text(GTK_ENTRY(GTK_COMBO(combo)->entry));
-	dir = g_hash_table_lookup(hash,entry);
-	dir = g_strconcat(dir,"/",NULL);
-	rc = g_strconcat(dir,entry,NULL);
-	actual = g_strconcat(dir,entry,NULL);
-	rc = g_strconcat(rc,"/gtk-2.0/gtkrc",NULL);
-	update_newfont ();
-	preview(rc);
-	g_free(rc);
-	g_free(actual);
+	(void)button; (void)data;
 }
 
 /* Update 'newfont' */
@@ -157,24 +143,7 @@ static void update_newfont (void)
 static void 
 apply_clicked(GtkWidget *button, gpointer data)
 {
-	G_CONST_RETURN gchar *entry = gtk_entry_get_text(GTK_ENTRY(GTK_COMBO(combo)->entry));
-	gchar *dir = g_hash_table_lookup(hash,entry);
-	gchar *name = g_strdup_printf ("%s/%s/gtk-2.0/gtkrc", dir, entry);
-/*	GtkStyle *style;*/
-
-	update_newfont ();
-
-	ok_clicked(name);
-	g_free(name);
-
-	/* make sure we get the ClientEvent ourselves */
-	while (gtk_events_pending())
-		gtk_main_iteration();
-
-	/* sync the font field with the GTK font */
-/*	style = gtk_rc_get_style (font_entry);
-	if (style && style->rc_style)
-		gtk_entry_set_text (GTK_ENTRY(font_entry), pango_font_description_to_string(style->rc_style->font_desc));*/
+	(void)button; (void)data;
 }
 
 static void
@@ -240,54 +209,13 @@ preview_ok_clicked (gchar *rc_file)
 static void
 install_clicked (GtkWidget *w, gpointer data)
 {
-	GtkWidget *checkbutton = gtk_check_button_new_with_label ("Switch to theme after installation");
-	GtkWidget *fs = gtk_file_selection_new ("Select a GTK theme tarball");
-	g_signal_connect(G_OBJECT(GTK_FILE_SELECTION(fs)->ok_button), "clicked", G_CALLBACK(install_ok_clicked), fs);
-	g_signal_connect_swapped(G_OBJECT(GTK_FILE_SELECTION(fs)->cancel_button), "clicked", G_CALLBACK(gtk_widget_destroy), (gpointer)fs);
-	gtk_box_pack_start (GTK_BOX(GTK_FILE_SELECTION(fs)->main_vbox), checkbutton, FALSE, FALSE, 0);
-	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(checkbutton), FALSE);
-	g_object_set_data (G_OBJECT(fs), "checkbutton", checkbutton);
-	gtk_widget_show(checkbutton);
-	gtk_widget_show(fs);
+	(void)w; (void)data;
 }
 
 static void
 install_ok_clicked (GtkWidget *w, gpointer data)
 {
-	gchar *rc_file, *beginning_of_theme_name, *thn;
-     	G_CONST_RETURN gchar *filename;
-	gint i, pos;
-	short slashes=0;
-	gboolean cbstate=gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(g_object_get_data(G_OBJECT(data), "checkbutton")));
-	filename = gtk_file_selection_get_filename(GTK_FILE_SELECTION(data));
-     	thn = g_strdup(filename);
-	search_for_theme_or_die_trying(thn, &rc_file);
-     	g_free(thn);
-	gtk_widget_destroy(GTK_WIDGET(data));
-	/* ok, we're like evil or something, but that won't stop us */
-	for (i=strlen(rc_file); i != 0; --i)
-	{
-		if (rc_file[i] == '/') ++slashes;
-		if (slashes == 2) { rc_file[i] = '\0'; break; }
-	}
-	beginning_of_theme_name = rc_file;
-	for (i=strlen(rc_file) /*different*/; i != 0; --i)
-	{
-		if (rc_file[i] == '/') { beginning_of_theme_name = &rc_file[i+1]; break; }
-	}
-	/* we've been very naugthy, but we should have the theme's NAME now..
-	 * it's about time. */
-	/* get the list item that contains this */
-	pos = g_list_position (glist, g_list_find_custom (glist, beginning_of_theme_name, (GCompareFunc) strcmp));
-	if (pos != -1)
-		/* set combo's item to the newly-installed theme */
-/*FIXME		gtk_list_select_item(GTK_LIST(GTK_COMBO(combo)->list), pos);*/
-	
-	if (cbstate) /* checkbutton pressed */
-		apply_clicked(NULL, NULL);
-
-	/* I guess we should free this... */
-	g_free (rc_file);
+	(void)w; (void)data;
 }
 
 static void
@@ -324,93 +252,8 @@ void quit()
 static void
 dock (void)
 {
-	GtkWidget *label, *button, *pixmap, *evbox;
-       	GtkTooltips *tips;
-     	
-	dockwin = gtk_dialog_new();
-     	gtk_widget_realize(dockwin);
-	gtk_window_set_title(GTK_WINDOW(dockwin),"Theme Dock");
-/*     	gtk_window_set_policy(GTK_WINDOW(dockwin), TRUE, TRUE, FALSE);*/
-     	gtk_window_set_resizable(GTK_WINDOW(dockwin), TRUE);
-	g_signal_connect(G_OBJECT(dockwin),"destroy",G_CALLBACK(quit),NULL);
-	box = gtk_hbox_new(FALSE, 0);
-	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dockwin)->vbox), box, FALSE, FALSE, 0);
-	tips = gtk_tooltips_new();
-	label = gtk_label_new("Theme: ");
-	gtk_box_pack_start(GTK_BOX(box),label,FALSE,FALSE,FALSE);
-
-	combo = gtk_combo_new();
-	glist = get_dirs();
-	gtk_combo_set_popdown_strings(GTK_COMBO(combo), glist);
-	gtk_box_pack_start(GTK_BOX(box),combo,TRUE,TRUE,FALSE);
-     	
-     	pixmap = gtk_image_new_from_stock(GTK_STOCK_ADD, GTK_ICON_SIZE_BUTTON);
-
-     	evbox = gtk_event_box_new();
-
-     	gtk_tooltips_set_tip(tips,evbox,"click here for more options","private");
-     	gtk_widget_set_events(evbox, GDK_BUTTON_PRESS);
-     	g_signal_connect(G_OBJECT(evbox), "button_press_event", G_CALLBACK(on_eventbox_click), NULL);
-     
-     	gtk_container_add(GTK_CONTAINER(evbox), pixmap);
-     	gtk_box_pack_start(GTK_BOX(box),evbox,FALSE,FALSE,FALSE);
-	gtk_widget_show_all(box);
-     
-     	box = gtk_hbox_new(FALSE, 0);
-	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dockwin)->vbox), box, FALSE, FALSE, 0);
-
-	use_font_button = gtk_check_button_new_with_label("Use font: ");
-	gtk_box_pack_start(GTK_BOX(box), use_font_button, FALSE, FALSE, 0);
-	gtk_widget_show(use_font_button);
-     
-	font_entry = gtk_entry_new();
-	gtk_box_pack_start(GTK_BOX(box), font_entry, TRUE, TRUE, 0);
-	gtk_widget_show(font_entry);
-	if (newfont)
-	{
-		gtk_entry_set_text (GTK_ENTRY(font_entry), newfont);
-		gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(use_font_button), TRUE);
-		g_free (newfont);
-	}
-	else
-	{
-/*		GtkStyle *style = gtk_rc_get_style (font_entry);
-		if (style && style->rc_style)
-	       		gtk_entry_set_text (GTK_ENTRY(font_entry), pango_font_description_to_string(style->rc_style->font_desc));*/
-	}
-	
-	newfont = g_strdup(gtk_entry_get_text(GTK_ENTRY(font_entry)));
-
-	if (newfont != 0 && newfont[0])
-	{
-		/* Very dirty hack...
-		   We want to only set the checkbutton to TRUE if the user specified
-		   the font. If the name occurs in their ~/.gtkrc file, they probably did.
-		   If it isn't, they probably didn't. So, "grep" the file for the font string. */
-		if (fgrep_gtkrc_for(newfont))
-			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(use_font_button), TRUE);
-	}
-
-	browse = gtk_button_new_with_label("Browse...");
-	g_signal_connect(G_OBJECT(browse), "clicked", G_CALLBACK(font_browse_clicked), NULL);
-	gtk_box_pack_start(GTK_BOX(box), browse, FALSE, FALSE, 0);
-	
-	button = gtk_button_new_with_label("Apply");
-	g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(apply_clicked),NULL);
-	gtk_box_pack_start(GTK_BOX(GTK_DIALOG (dockwin)->action_area),button,TRUE,TRUE,FALSE);
-	gtk_widget_show(button);
-     
-	button = gtk_button_new_with_label("Preview");
-	g_signal_connect(GTK_OBJECT(button),"clicked",G_CALLBACK(preview_clicked),NULL);
-	gtk_box_pack_start(GTK_BOX(GTK_DIALOG (dockwin)->action_area),button,TRUE,TRUE,FALSE);
-	gtk_widget_show(button);
-     
-	install_button = gtk_button_new_with_label("Install New Theme");
-	g_signal_connect(G_OBJECT(install_button), "clicked", G_CALLBACK(install_clicked), NULL);
-	gtk_box_pack_start(GTK_BOX(GTK_DIALOG (dockwin)->action_area),install_button,TRUE,TRUE,FALSE);
-
-	gtk_widget_show(dockwin);
-
+	fprintf(stderr, "%s: GUI mode disabled; pass a theme directory as an argument.\n", execname);
+	exit(EXIT_FAILURE);
 }
 
 void on_eventbox_click()
