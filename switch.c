@@ -568,8 +568,7 @@ static short install_tarball (gchar *path, gchar **rc_file)
 		g_list_foreach (glist, (GFunc)g_free, NULL);
 		g_list_free (glist);
 		glist = new_list;
-		/* Update combo, but only in dock mode */
-		if (combo)	gtk_combo_set_popdown_strings(GTK_COMBO(combo), glist);
+		/* dock-mode combo update removed (GUI handlers stubbed) */
 	}
 	else
 	{
